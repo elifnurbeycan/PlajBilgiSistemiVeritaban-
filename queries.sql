@@ -1,51 +1,45 @@
--- queries.sql dosyasi
--- Bu dosya, plaj bilgi sistemi veritabani icin iki adet veri cekme (SELECT) sorgusu icerir.
--- Her iki sorgu da tablo birlestirme (JOIN) kullanir ve farkli sutunlar uzerinden birlestirme yapar.
-
--- Sorgu 1: Belirli bir plajda gerceklesen etkinlikleri ve bu etkinliklere katilan kullanici sayisini listeler.
--- Bu sorgu, PLAJ, PLAJ_ETKINLIK, ETKINLIK ve KUL_ETK_KATILIM tablolarini birlestirir.
--- PLAJ_ETKINLIK tablosu uzerinden plajlar ve etkinlikler birlestirilirken,
--- KUL_ETK_KATILIM tablosu uzerinden etkinliklere katilim bilgileri alinir.
+-- 1. Sorgu
+-- Plaj, plajdaki etkinlik, etkinlik türü ve kullanıcı katılımı tablolarını birleştirerek;
+-- her plajda düzenlenen etkinliklerin tarih, ücret ve katılımcı sayılarını raporlar.
 SELECT
-    P.plaj_ad, -- Plajin adini sec
-    E.etk_adi, -- Etkinligin adini sec
-    PE.etk_bas_tar, -- Etkinligin baslangic tarihini sec
-    PE.etk_ucret, -- Etkinlik ucretini sec
-    COUNT(KEK.kullaniciID) AS katilan_kullanici_sayisi -- Bu etkinlige katilan kullanici sayisini say
+    P.plaj_ad,                            -- Etkinliğin düzenlendiği plajın adı
+    E.etk_adi,                            -- Etkinliğin başlığı
+    PE.etk_bas_tar,                      -- Etkinliğin başlama zamanı
+    PE.etk_ucret,                        -- Etkinliğe katılım ücreti
+    COUNT(KEK.kullaniciID) AS katilan_kullanici_sayisi -- Katılan kullanıcı sayısı
 FROM
-    PLAJ AS P -- PLAJ tablosunu P takma adiyla kullan
+    PLAJ AS P
 JOIN
-    PLAJ_ETKINLIK AS PE ON P.plajID = PE.plajID -- PLAJ ve PLAJ_ETKINLIK tablolarini plajID uzerinden birlestir
+    PLAJ_ETKINLIK AS PE ON P.plajID = PE.plajID
 JOIN
-    ETKINLIK AS E ON PE.etkinlikID = E.etkinlikID -- PLAJ_ETKINLIK ve ETKINLIK tablolarini etkinlikID uzerinden birlestir
-LEFT JOIN -- Opsiyonel: Etkinlige henuz kimse katilmamis olsa bile etkinligi gostermek icin LEFT JOIN
-    KUL_ETK_KATILIM AS KEK ON PE.pl_etkID = KEK.pl_etkID -- PLAJ_ETKINLIK ve KUL_ETK_KATILIM tablolarini pl_etkID uzerinden birlestir
+    ETKINLIK AS E ON PE.etkinlikID = E.etkinlikID
+LEFT JOIN
+    KUL_ETK_KATILIM AS KEK ON PE.pl_etkID = KEK.pl_etkID
 GROUP BY
-    P.plajID, E.etkinlikID, PE.etk_bas_tar -- Agregasyon icin gruplama
+    P.plajID, E.etkinlikID, PE.etk_bas_tar
 ORDER BY
-    P.plaj_ad, PE.etk_bas_tar; -- Sonuclari plaj adina ve etkinlik tarihine gore sirala
+    P.plaj_ad, PE.etk_bas_tar;
 
-
--- Sorgu 2: Personel maas hareketlerini, personelin guncel bilgilerini ve gorevlendirildigi plajlari listeler.
--- Bu sorgu, PERSONEL, MAAS_HAREKETLERI, GOREV_ATAMALARI ve PLAJ tablolarini birlestirir.
--- MAAS_HAREKETLERI ve GOREV_ATAMALARI, PERSONEL_ID uzerinden PERSONEL tablosuyla birlesir.
--- GOREV_ATAMALARI ve PLAJ tablolari PLAJ_ID uzerinden birlesir.
+-- 2. Sorgu
+-- Personel, maaş geçmişi, görev atamaları ve çalıştıkları plaj bilgilerini birleştirerek;
+-- maaş değişim tarihçesini ve görev yerlerini raporlar.
 SELECT
-    PER.pers_ad, -- Personelin adini sec
-    PER.pers_soyad, -- Personelin soyadini sec
-    PER.gorev_turu, -- Personelin gorev turunu sec
-    MH.degisiklik_tarihi, -- Maas degisikliginin tarihini sec
-    MH.eski_maas, -- Eski maas miktarini sec
-    MH.yeni_maas, -- Yeni maas miktarini sec
-    P.plaj_ad AS gorev_aldigi_plaj_adi, -- Gorev aldigi plajin adini sec
-    GA.baslangic_tarihi AS gorev_baslangic_tarihi -- Gorevin baslangic tarihini sec
+    PER.pers_ad,                         -- Personelin adı
+    PER.pers_soyad,                      -- Personelin soyadı
+    PER.gorev_turu,                      -- Çalıştığı görev türü
+    MH.degisiklik_tarihi,               -- Maaş değişikliğinin tarihi
+    MH.eski_maas,                        -- Önceki maaş miktarı
+    MH.yeni_maas,                        -- Güncel maaş miktarı
+    P.plaj_ad AS gorev_aldigi_plaj_adi, -- Görev yaptığı plaj adı
+    GA.baslangic_tarihi AS gorev_baslangic_tarihi -- Göreve başlama tarihi
 FROM
-    PERSONEL AS PER -- PERSONEL tablosunu PER takma adiyla kullan
+    PERSONEL AS PER
 JOIN
-    MAAS_HAREKETLERI AS MH ON PER.personelID = MH.personelID -- PERSONEL ve MAAS_HAREKETLERI tablolarini personelID uzerinden birlestir
-LEFT JOIN -- Opsiyonel: Henuz gorev almamis personelleri de gostermek icin LEFT JOIN
-    GOREV_ATAMALARI AS GA ON PER.personelID = GA.personelID -- PERSONEL ve GOREV_ATAMALARI tablolarini personelID uzerinden birlestir
-LEFT JOIN -- Opsiyonel: Gorev atamasi olmayanlari da gostermek icin LEFT JOIN (eger GA NULL ise P de NULL olur)
-    PLAJ AS P ON GA.plajID = P.plajID -- GOREV_ATAMALARI ve PLAJ tablolarini plajID uzerinden birlestir
+    MAAS_HAREKETLERI AS MH ON PER.personelID = MH.personelID
+LEFT JOIN
+    GOREV_ATAMALARI AS GA ON PER.personelID = GA.personelID
+LEFT JOIN
+    PLAJ AS P ON GA.plajID = P.plajID
 ORDER BY
-    PER.pers_ad, MH.degisiklik_tarihi DESC; -- Sonuclari personel adina ve degisiklik tarihine gore sirala
+    PER.pers_ad, MH.degisiklik_tarihi DESC;
+
